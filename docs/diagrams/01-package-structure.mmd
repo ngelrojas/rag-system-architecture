@@ -1,0 +1,42 @@
+classDiagram
+    direction TB
+    class AnswerQuestionHandler {
+        -LLMPort llm
+        -EmbeddingPort embedder
+        -RetrievalPort retriever
+        +handle(AnswerQuestionQuery) AnsweredQuestion
+    }
+    class IngestDocumentHandler {
+        -EmbeddingPort embedder
+        -VectorStorePort vector_store
+        -int chunk_size
+        +handle(IngestDocumentCommand) IngestResult
+    }
+    class RetrievalPort {
+        <<interface>>
+        +search(embedding, top_k) list~RetrievedChunk~
+    }
+    class LLMPort {
+        <<interface>>
+        +complete(prompt) str
+    }
+    class EmbeddingPort {
+        <<interface>>
+        +embed(text) list~float~
+    }
+    class VectorStorePort {
+        <<interface>>
+        +upsert(key, embedding, metadata)
+        +delete_prefix(prefix)
+    }
+    AnswerQuestionHandler --> RetrievalPort
+    AnswerQuestionHandler --> LLMPort
+    AnswerQuestionHandler --> EmbeddingPort
+    IngestDocumentHandler --> EmbeddingPort
+    IngestDocumentHandler --> VectorStorePort
+    QdrantRetriever ..|> RetrievalPort
+    OpenAILLM ..|> LLMPort
+    LocalLLM ..|> LLMPort
+    OpenAIEmbeddings ..|> EmbeddingPort
+    LocalEmbeddings ..|> EmbeddingPort
+    QdrantVectorStore ..|> VectorStorePort

@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant API as API adapter
+    participant Router as Routing graph (5.5)
+    participant AQH as AnswerQuestionHandler
+    participant Ret as RetrievalPort (guarded)
+    participant LLM as LLMPort (traced, budgeted)
+    API->>Router: question
+    Router->>Router: classify
+    Router->>AQH: dispatch (semantic)
+    AQH->>Ret: search(embedding, top_k)
+    Ret-->>AQH: candidates
+    AQH->>AQH: filter by relevance (3.3)
+    AQH->>LLM: complete(prompt)
+    LLM-->>AQH: answer
+    AQH-->>Router: AnsweredQuestion
+    Router-->>API: final response

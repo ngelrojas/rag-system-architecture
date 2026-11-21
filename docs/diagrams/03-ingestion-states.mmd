@@ -1,0 +1,9 @@
+stateDiagram-v2
+    [*] --> Ingesting
+    Ingesting --> ChunkEmbedded: embed + upsert each chunk
+    ChunkEmbedded --> Ingesting: more chunks remain
+    ChunkEmbedded --> Committed: all chunks written
+    Ingesting --> RollingBack: any chunk fails
+    RollingBack --> Failed: delete_prefix complete
+    Committed --> [*]
+    Failed --> [*]
