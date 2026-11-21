@@ -74,3 +74,13 @@ class QdrantRetriever(RetrievalPort):
             RetrievedChunk(text=str((p.payload or {}).get("text", "")), score=p.score)
             for p in response.points
         ]
+
+
+def qdrant_pair(url: str, collection: str) -> tuple[QdrantVectorStore, QdrantRetriever]:
+    """Both sides on one client — required for url=":memory:", where separate
+    clients would be separate in-process databases."""
+    client = QdrantClient(location=url)
+    return (
+        QdrantVectorStore(url=url, collection=collection, client=client),
+        QdrantRetriever(url=url, collection=collection, client=client),
+    )

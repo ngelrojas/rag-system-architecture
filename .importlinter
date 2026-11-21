@@ -52,6 +52,7 @@ forbidden_modules =
     app.adapters.cached_retriever
     app.adapters.postgres_outbox_store
     app.adapters.ingest_service_client
+    app.adapters.offline
     app.adapters.sqlite_structured_query
     app.adapters.postgres_structured_query
     app.composition
@@ -69,6 +70,7 @@ forbidden_modules =
     app.adapters.openai_embeddings
     app.adapters.qdrant_store
     app.adapters.postgres_outbox_store
+    app.adapters.offline
     app.composition
     openai
     qdrant_client
