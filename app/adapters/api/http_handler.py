@@ -16,6 +16,7 @@ from app.application import Application
 from app.compliance.sql_guardrail import ComplianceError
 from app.core.commands import IngestDocumentCommand
 from app.core.queries import AnswerQuestionQuery
+from app.core.query_budget import BudgetExceededError, QueryBudget
 from app.evaluation.deterministic_checks import run_deterministic_checks
 from app.evaluation.llm_judge import judge_answer_quality
 
@@ -39,11 +40,19 @@ def create_api(application: Application) -> FastAPI:
         # 6.3 — a guardrail refusal is an answer, not a crash.
         return JSONResponse(status_code=403, content={"error": "compliance_refused", "detail": str(exc)})
 
+    @api.exception_handler(BudgetExceededError)
+    def budget_exceeded(request: Request, exc: BudgetExceededError) -> JSONResponse:
+        # 6.5 — the request stopped at its cost ceiling instead of looping on.
+        return JSONResponse(status_code=429, content={"error": "budget_exceeded", "detail": str(exc)})
+
+    def new_budget() -> QueryBudget:
+        return QueryBudget(max_llm_calls=application.max_llm_calls_per_request)
+
     @api.post("/query")
     def query_endpoint(request: QueryRequest, x_trace_id: str | None = Header(default=None)) -> dict:
         # 6.2 — one trace_id per request; every port call below logs a span under it.
         trace_id = x_trace_id or str(uuid.uuid4())
-        handler = application.make_query_handler(trace_id)
+        handler = application.make_query_handler(trace_id, new_budget())
         query = AnswerQuestionQuery(question=request.text, min_relevance=application.min_relevance)
         result = handler.handle(query)
 
@@ -55,10 +64,13 @@ def create_api(application: Application) -> FastAPI:
                 "trace_id": trace_id}
 
     @api.post("/ask")
-    def ask_endpoint(request: QueryRequest) -> dict:
-        # The same question, through the corrective answer graph (5.3).
-        state = application.answer_graph.invoke({"question": request.text})
-        return {"answer": state["answer"], "attempts": state["attempts"]}
+    def ask_endpoint(request: QueryRequest, x_trace_id: str | None = Header(default=None)) -> dict:
+        # The same question, through the corrective answer graph (5.3) —
+        # built per request so it shares one trace_id (6.2) and one budget (6.5).
+        trace_id = x_trace_id or str(uuid.uuid4())
+        graph = application.make_answer_graph(trace_id, new_budget())
+        state = graph.invoke({"question": request.text})
+        return {"answer": state["answer"], "attempts": state["attempts"], "trace_id": trace_id}
 
     @api.post("/route")
     def route_endpoint(request: QueryRequest) -> dict:

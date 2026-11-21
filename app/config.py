@@ -32,5 +32,8 @@ class Settings(BaseSettings):
     local_inference_url: str = "http://localhost:11434"
     local_model_name: str = "qwen2.5:7b"
 
+    # 6.5 — cost: the most LLM calls one request may make (graphs included)
+    max_llm_calls_per_request: int = 5
+
     # 6.1 — share of answers sent to the LLM judge (0.0 to 1.0)
     judge_sample_rate: float = 0.05

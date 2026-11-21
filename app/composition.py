@@ -2,6 +2,8 @@
 #
 # This is the ONLY file in the application allowed to import
 # concrete adapters. Every other module imports ports.
+from typing import Any
+
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -19,8 +21,10 @@ from app.compliance.pii_guardrail import PiiGuardrailLLM
 from app.compliance.sql_guardrail import ReadOnlySqlGuardrail
 from app.config import Settings
 from app.core.ingest_handler import IngestDocumentHandler
+from app.core.query_budget import QueryBudget
 from app.core.query_handler import AnswerQuestionHandler
 from app.core.structured_query_handler import StructuredQueryHandler
+from app.observability.budgeted_llm import BudgetedLLMPort
 from app.observability.traced_port import TracedEmbeddingPort, TracedLLMPort, TracedRetrievalPort
 from app.ports import EmbeddingPort, LLMPort, RetrievalPort, StructuredQueryPort, VectorStorePort
 
@@ -74,9 +78,19 @@ def wire(
     structured_handler = StructuredQueryHandler(llm=llm, db=structured_db, schema=settings.nlq_schema)
     min_relevance = settings.min_relevance_threshold
 
-    def make_query_handler(trace_id: str) -> AnswerQuestionHandler:
+    def request_ports(trace_id: str, budget: QueryBudget) -> tuple[LLMPort, EmbeddingPort, RetrievalPort]:
         traced_llm, traced_embedder, traced_retriever = build_request_scoped_ports(llm, embedder, retriever, trace_id)
-        return AnswerQuestionHandler(llm=traced_llm, embedder=traced_embedder, retriever=traced_retriever)
+        # 6.5 — the budget wraps the traced port, so refused calls are never sent or traced as sent.
+        return BudgetedLLMPort(traced_llm, budget), traced_embedder, traced_retriever
+
+    def make_query_handler(trace_id: str, budget: QueryBudget) -> AnswerQuestionHandler:
+        request_llm, request_embedder, request_retriever = request_ports(trace_id, budget)
+        return AnswerQuestionHandler(llm=request_llm, embedder=request_embedder, retriever=request_retriever)
+
+    def make_answer_graph(trace_id: str, budget: QueryBudget) -> Any:
+        request_llm, request_embedder, request_retriever = request_ports(trace_id, budget)
+        handler = AnswerQuestionHandler(llm=request_llm, embedder=request_embedder, retriever=request_retriever)
+        return build_answer_graph(handler, llm=request_llm, min_relevance=min_relevance)
 
     return Application(
         query_handler=query_handler,
@@ -88,7 +102,9 @@ def wire(
         min_relevance=min_relevance,
         judge_llm=llm,
         judge_sample_rate=settings.judge_sample_rate,
+        max_llm_calls_per_request=settings.max_llm_calls_per_request,
         make_query_handler=make_query_handler,
+        make_answer_graph=make_answer_graph,
     )
 
 

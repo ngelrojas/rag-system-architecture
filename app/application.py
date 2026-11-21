@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.ingest_handler import IngestDocumentHandler
+from app.core.query_budget import QueryBudget
 from app.core.query_handler import AnswerQuestionHandler
 from app.core.structured_query_handler import StructuredQueryHandler
 from app.ports import LLMPort
@@ -26,5 +27,7 @@ class Application:
     min_relevance: float
     judge_llm: LLMPort
     judge_sample_rate: float
-    # 6.2 — builds an AnswerQuestionHandler whose ports are wrapped for one request
-    make_query_handler: Callable[[str], AnswerQuestionHandler]
+    max_llm_calls_per_request: int
+    # 6.2 / 6.5 — request-scoped construction: ports wrapped with one trace_id and one budget
+    make_query_handler: Callable[[str, QueryBudget], AnswerQuestionHandler]
+    make_answer_graph: Callable[[str, QueryBudget], Any]
