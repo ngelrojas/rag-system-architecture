@@ -17,3 +17,13 @@ source_modules =
 forbidden_modules =
     adapters
     langchain
+
+# 1.4 — the rule that makes the port a fact rather than a wish
+[importlinter:contract:domain-independence]
+name = Domain must not import adapters or vendor SDKs
+type = forbidden
+source_modules =
+    domain
+forbidden_modules =
+    adapters
+    openai
