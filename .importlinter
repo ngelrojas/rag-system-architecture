@@ -7,6 +7,7 @@
 root_packages =
     domain
     adapters
+    services
 include_external_packages = True
 
 [importlinter:contract:domain-is-pure]
@@ -26,4 +27,17 @@ source_modules =
     domain
 forbidden_modules =
     adapters
+    services
     openai
+    qdrant_client
+
+# 2.4 — orchestrators coordinate ports; they never touch a vendor
+[importlinter:contract:services-use-ports]
+name = Services must not import adapters or vendor SDKs
+type = forbidden
+source_modules =
+    services
+forbidden_modules =
+    adapters
+    openai
+    qdrant_client
