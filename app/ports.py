@@ -37,3 +37,10 @@ class RetrievalPort(Protocol):
     the type itself makes misuse from the query side impossible."""
 
     def search(self, embedding: list[float], top_k: int) -> list[RetrievedChunk]: ...
+
+
+class StructuredQueryPort(Protocol):
+    """Read access to a relational database for natural-language queries (5.5).
+    6.3 wraps it with a guardrail that refuses anything but reads."""
+
+    def execute(self, sql: str) -> list[dict]: ...

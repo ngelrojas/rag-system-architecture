@@ -8,6 +8,7 @@ from typing import Any
 
 from app.core.ingest_handler import IngestDocumentHandler
 from app.core.query_handler import AnswerQuestionHandler
+from app.core.structured_query_handler import StructuredQueryHandler
 
 
 @dataclass
@@ -16,6 +17,8 @@ class Application:
 
     query_handler: AnswerQuestionHandler
     ingest_handler: IngestDocumentHandler
+    structured_handler: StructuredQueryHandler
     answer_graph: Any
     review_graph: Any
+    multi_agent_graph: Any
     min_relevance: float

@@ -52,9 +52,12 @@ forbidden_modules =
     app.adapters.cached_retriever
     app.adapters.postgres_outbox_store
     app.adapters.ingest_service_client
+    app.adapters.sqlite_structured_query
+    app.adapters.postgres_structured_query
     app.composition
     openai
     qdrant_client
+    psycopg
 
 [importlinter:contract:6]
 name = The HTTP adapter drives the core - no concrete driven adapters

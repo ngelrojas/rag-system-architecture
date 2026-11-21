@@ -5,12 +5,14 @@ from langgraph.checkpoint.memory import InMemorySaver
 from app.adapters.api.http_handler import create_api
 from app.composition import wire
 from app.config import Settings
-from app.testing.fakes import FakeEmbedder, FakeLLM, FakeRetriever, FakeVectorStore
+from app.testing.fakes import FakeEmbedder, FakeLLM, FakeRetriever, FakeStructuredQueryPort, FakeVectorStore
 
 
 def make_client() -> tuple[TestClient, FakeVectorStore]:
     store = FakeVectorStore()
-    application = wire(Settings(), FakeLLM(), FakeEmbedder(), store, FakeRetriever(), InMemorySaver())
+    application = wire(
+        Settings(), FakeLLM(), FakeEmbedder(), store, FakeRetriever(), FakeStructuredQueryPort(), InMemorySaver()
+    )
     return TestClient(create_api(application)), store
 
 

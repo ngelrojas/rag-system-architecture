@@ -21,3 +21,8 @@ class Settings(BaseSettings):
 
     # 5.4 — durable human-in-the-loop pauses (empty = in-memory checkpointer)
     checkpoint_database_url: str = ""
+
+    # 5.5 — natural-language queries over a relational database.
+    # "sqlite:///path.db" or "sqlite:///:memory:" for local runs, a postgresql:// URL in production.
+    structured_database_url: str = "sqlite:///:memory:"
+    nlq_schema: str = ""

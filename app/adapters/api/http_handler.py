@@ -36,6 +36,12 @@ def create_api(application: Application) -> FastAPI:
         state = application.answer_graph.invoke({"question": request.text})
         return {"answer": state["answer"], "attempts": state["attempts"]}
 
+    @api.post("/route")
+    def route_endpoint(request: QueryRequest) -> dict:
+        # Documents, database, or both — decided by the multi-agent graph (5.5).
+        state = application.multi_agent_graph.invoke({"question": request.text})
+        return {"answer": state["final_answer"], "route": state["route"]}
+
     @api.post("/ingest")
     def ingest_endpoint(request: IngestRequest) -> dict:
         result = application.ingest_handler.handle(IngestDocumentCommand(doc_id=request.doc_id, text=request.text))

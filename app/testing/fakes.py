@@ -72,3 +72,25 @@ class FakeRetriever:
     def search(self, embedding: list[float], top_k: int) -> list[RetrievedChunk]:
         self.calls += 1
         return self._results[:top_k]
+
+
+class ScriptedLLM:
+    """Returns scripted responses in order — for flows with several LLM calls."""
+
+    def __init__(self, responses: list[str]) -> None:
+        self._responses = list(responses)
+        self.prompts: list[str] = []
+
+    def complete(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        return self._responses.pop(0) if self._responses else ""
+
+
+class FakeStructuredQueryPort:
+    def __init__(self, rows: list[dict] | None = None) -> None:
+        self._rows = rows or []
+        self.executed: list[str] = []
+
+    def execute(self, sql: str) -> list[dict]:
+        self.executed.append(sql)
+        return self._rows
