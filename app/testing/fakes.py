@@ -42,3 +42,24 @@ class FakeVectorStore:
 
     def search(self, embedding: list[float], top_k: int) -> list[RetrievedChunk]:
         return [RetrievedChunk(text=t, score=s) for t, s in self._results[:top_k]]
+
+
+class FailingAfterNCallsVectorStore(FakeVectorStore):
+    """Succeeds for the first `fail_after` upserts, then raises — the seam
+    that makes 2.3's partial failure reproducible on purpose (3.5)."""
+
+    def __init__(self, fail_after: int) -> None:
+        super().__init__()
+        self._fail_after = fail_after
+        self.upsert_calls = 0
+        self.delete_prefix_called_with: str | None = None
+
+    def upsert(self, key: str, embedding: list[float], metadata: dict) -> None:
+        self.upsert_calls += 1
+        if self.upsert_calls > self._fail_after:
+            raise ConnectionError("vector store unavailable")
+        super().upsert(key, embedding, metadata)
+
+    def delete_prefix(self, prefix: str) -> None:
+        self.delete_prefix_called_with = prefix
+        super().delete_prefix(prefix)
