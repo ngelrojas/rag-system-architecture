@@ -1,0 +1,19 @@
+# .importlinter — boundaries written as a contract (0.5)
+#
+# The book's first sketch of this file used a top-level package called
+# "docintel". The repository keeps "domain" and "adapters" as top-level
+# packages, which is exactly what Part I and Part II use.
+[importlinter]
+root_packages =
+    domain
+    adapters
+include_external_packages = True
+
+[importlinter:contract:domain-is-pure]
+name = Domain must not depend on adapters or frameworks
+type = forbidden
+source_modules =
+    domain
+forbidden_modules =
+    adapters
+    langchain
