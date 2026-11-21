@@ -1,6 +1,8 @@
-# .importlinter — enforces the boundary Part III established (3.6)
+# .importlinter — enforces the boundary Part III established (3.6),
+# extended for orchestration in Part V (5.3)
 [importlinter]
 root_package = app
+include_external_packages = True
 
 [importlinter:contract:1]
 name = Core must not depend on adapters
@@ -25,3 +27,31 @@ source_modules =
     app.core
 forbidden_modules =
     app.testing
+
+[importlinter:contract:4]
+name = Core must not depend on frameworks or vendor SDKs
+type = forbidden
+source_modules =
+    app.core
+forbidden_modules =
+    langgraph
+    fastapi
+    openai
+    qdrant_client
+    psycopg
+
+[importlinter:contract:5]
+name = Orchestration is a driving adapter - no concrete adapters, no vendor SDKs
+type = forbidden
+source_modules =
+    app.adapters.orchestration
+forbidden_modules =
+    app.adapters.openai_llm
+    app.adapters.openai_embeddings
+    app.adapters.qdrant_store
+    app.adapters.cached_retriever
+    app.adapters.postgres_outbox_store
+    app.adapters.ingest_service_client
+    app.composition
+    openai
+    qdrant_client
