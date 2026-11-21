@@ -1,4 +1,4 @@
-# app/ports.py — the ports, moved to the edge of the core (3.2)
+# app/ports.py — Part III's ports, extended with a read-shaped one (4.3)
 #
 # Ports are defined by the core, in the core's terms. Adapters implement
 # them; the core only ever sees these Protocols.
@@ -25,9 +25,15 @@ class RetrievedChunk:
 
 
 class VectorStorePort(Protocol):
-    """In Part III one port serves both writing and searching.
-    Part IV (4.3) splits the search side out into RetrievalPort."""
+    """Command-side port. Strict, consistent, owned by IngestDocumentHandler."""
 
     def upsert(self, key: str, embedding: list[float], metadata: dict) -> None: ...
     def delete_prefix(self, prefix: str) -> None: ...
+
+
+class RetrievalPort(Protocol):
+    """Query-side port. Shaped entirely around answering: given a vector,
+    return scored candidates. No mutation methods exist on this port at all —
+    the type itself makes misuse from the query side impossible."""
+
     def search(self, embedding: list[float], top_k: int) -> list[RetrievedChunk]: ...

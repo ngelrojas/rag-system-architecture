@@ -1,4 +1,4 @@
-# app/adapters/qdrant_store.py — VectorStorePort implementation (3.4, 3.5)
+# app/adapters/qdrant_store.py — VectorStorePort (3.4, 3.5) and RetrievalPort (4.3) implementations
 #
 # Qdrant ids must be integers or UUIDs, so the domain key ("doc-42-3") is
 # mapped to a stable UUID and kept in the payload, together with its
@@ -17,7 +17,7 @@ from qdrant_client.models import (
     VectorParams,
 )
 
-from app.ports import RetrievedChunk, VectorStorePort
+from app.ports import RetrievalPort, RetrievedChunk, VectorStorePort
 
 
 def point_id(key: str) -> str:
@@ -29,8 +29,10 @@ def document_prefix(key: str) -> str:
 
 
 class QdrantVectorStore(VectorStorePort):
-    def __init__(self, url: str, collection: str) -> None:
-        self._client = QdrantClient(location=url)
+    """Command side: strict, immediately consistent writes."""
+
+    def __init__(self, url: str, collection: str, client: QdrantClient | None = None) -> None:
+        self._client = client or QdrantClient(location=url)
         self._collection = collection
 
     def _ensure_collection(self, size: int) -> None:
@@ -53,6 +55,14 @@ class QdrantVectorStore(VectorStorePort):
             filter=Filter(must=[FieldCondition(key="prefix", match=MatchValue(value=prefix))])
         )
         self._client.delete(self._collection, points_selector=selector)
+
+
+class QdrantRetriever(RetrievalPort):
+    """Query side. Can point at the same Qdrant as the writer, or at a read replica."""
+
+    def __init__(self, url: str, collection: str, client: QdrantClient | None = None) -> None:
+        self._client = client or QdrantClient(location=url)
+        self._collection = collection
 
     def search(self, embedding: list[float], top_k: int) -> list[RetrievedChunk]:
         if not self._client.collection_exists(self._collection):

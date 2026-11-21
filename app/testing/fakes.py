@@ -1,4 +1,4 @@
-# app/testing/fakes.py — fakes for every port (1.4, 3.4, 3.5)
+# app/testing/fakes.py — fakes for every port (1.4, 3.4, 3.5, 4.4)
 #
 # Fakes live inside the app package so tests and demos can import them,
 # but app.core never does — the boundary contracts check that.
@@ -27,11 +27,11 @@ class FakeEmbedder:
 
 
 class FakeVectorStore:
-    """Stores writes in memory; search returns the canned (text, score) results."""
+    """Command-side fake: records writes. It has no search — after 4.3 the
+    write port doesn't either."""
 
-    def __init__(self, results: list[tuple[str, float]] | None = None) -> None:
+    def __init__(self) -> None:
         self.rows: dict[str, tuple[list[float], dict]] = {}
-        self._results = results or []
 
     def upsert(self, key: str, embedding: list[float], metadata: dict) -> None:
         self.rows[key] = (embedding, metadata)
@@ -39,9 +39,6 @@ class FakeVectorStore:
     def delete_prefix(self, prefix: str) -> None:
         for key in [k for k in self.rows if k.startswith(prefix)]:
             del self.rows[key]
-
-    def search(self, embedding: list[float], top_k: int) -> list[RetrievedChunk]:
-        return [RetrievedChunk(text=t, score=s) for t, s in self._results[:top_k]]
 
 
 class FailingAfterNCallsVectorStore(FakeVectorStore):
@@ -63,3 +60,15 @@ class FailingAfterNCallsVectorStore(FakeVectorStore):
     def delete_prefix(self, prefix: str) -> None:
         self.delete_prefix_called_with = prefix
         super().delete_prefix(prefix)
+
+
+class FakeRetriever:
+    """Query-side fake: returns canned chunks. No mutation methods to ignore."""
+
+    def __init__(self, results: list[RetrievedChunk] | None = None) -> None:
+        self._results = results or []
+        self.calls = 0
+
+    def search(self, embedding: list[float], top_k: int) -> list[RetrievedChunk]:
+        self.calls += 1
+        return self._results[:top_k]

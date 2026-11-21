@@ -9,7 +9,7 @@ import json
 import uuid
 from typing import Any
 
-from app.ports import RetrievedChunk, VectorStorePort
+from app.ports import VectorStorePort
 
 
 class PostgresVectorStoreWithOutbox(VectorStorePort):
@@ -38,9 +38,3 @@ class PostgresVectorStoreWithOutbox(VectorStorePort):
                 "INSERT INTO outbox (id, event_type, payload, published) VALUES (%s, %s, %s, false)",
                 (str(uuid.uuid4()), "chunks_deleted", json.dumps({"prefix": prefix})),
             )
-
-    def search(self, embedding: list[float], top_k: int) -> list[RetrievedChunk]:
-        # This adapter is the write side of ingestion. Searching stays with
-        # the vector store; Part IV (4.3) makes that split explicit by giving
-        # the read side its own port.
-        raise NotImplementedError("PostgresVectorStoreWithOutbox is write-only; search with QdrantVectorStore")
