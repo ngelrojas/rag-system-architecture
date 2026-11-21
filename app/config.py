@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     local_inference_url: str = "http://localhost:11434"
     local_model_name: str = "qwen2.5:7b"
 
+    # 6.6 — "cloud", or "sovereign": every port served from inside the boundary
+    deployment_mode: str = "cloud"
+    local_embed_url: str = "http://localhost:11434"
+    local_embed_model: str = "nomic-embed-text"
+    private_qdrant_url: str = "http://localhost:6333"
+
     # 6.5 — cost: the most LLM calls one request may make (graphs included)
     max_llm_calls_per_request: int = 5
 

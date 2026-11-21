@@ -7,6 +7,7 @@ from typing import Any
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 
+from app.adapters.local_embeddings import LocalEmbeddings
 from app.adapters.local_llm import LocalLLM
 from app.adapters.openai_embeddings import OpenAIEmbeddings
 from app.adapters.openai_llm import OpenAILLM
@@ -119,11 +120,22 @@ def build_llm(settings: Settings) -> LLMPort:
 
 
 def build_application(settings: Settings) -> Application:
-    raw_llm = build_llm(settings)
-    embedder: EmbeddingPort = OpenAIEmbeddings(api_key=settings.openai_api_key, model=settings.embedding_model)
+    # 6.6 — sovereignty as a composition-root decision: the same if/else
+    # shape as 6.4, extended to every port at once.
+    if settings.deployment_mode == "sovereign":
+        raw_llm: LLMPort = LocalLLM(base_url=settings.local_inference_url, model=settings.local_model_name)
+        embedder: EmbeddingPort = LocalEmbeddings(base_url=settings.local_embed_url, model=settings.local_embed_model)
+        qdrant_url = settings.private_qdrant_url
+    elif settings.deployment_mode == "cloud":
+        raw_llm = build_llm(settings)
+        embedder = OpenAIEmbeddings(api_key=settings.openai_api_key, model=settings.embedding_model)
+        qdrant_url = settings.qdrant_url
+    else:
+        raise ValueError(f"Unknown deployment_mode: {settings.deployment_mode}")
+
     # Command side and query side resolved independently (4.3).
-    vector_store: VectorStorePort = QdrantVectorStore(url=settings.qdrant_url, collection=settings.qdrant_collection)
-    retriever: RetrievalPort = QdrantRetriever(url=settings.qdrant_url, collection=settings.qdrant_collection)
+    vector_store: VectorStorePort = QdrantVectorStore(url=qdrant_url, collection=settings.qdrant_collection)
+    retriever: RetrievalPort = QdrantRetriever(url=qdrant_url, collection=settings.qdrant_collection)
 
     # 6.3 — guardrails wrap ports here, once. Everything downstream —
     # handlers, orchestration graphs from Part V — receives the guarded
@@ -131,6 +143,9 @@ def build_application(settings: Settings) -> Application:
     guarded_llm: LLMPort = PiiGuardrailLLM(raw_llm)
     guarded_structured_port: StructuredQueryPort = ReadOnlySqlGuardrail(build_structured_port(settings))
 
+    # IngestDocumentHandler, AnswerQuestionHandler, every orchestration graph
+    # from Part V, every guardrail from 6.3 — constructed exactly the same way
+    # regardless of which branch ran.
     return wire(
         settings, guarded_llm, embedder, vector_store, retriever, guarded_structured_port, build_checkpointer(settings)
     )
