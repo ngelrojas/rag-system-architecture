@@ -1,4 +1,4 @@
-# .importlinter — the boundary from Part III (3.2-3.3); 3.6 completes it
+# .importlinter — enforces the boundary Part III established (3.6)
 [importlinter]
 root_package = app
 
@@ -9,3 +9,19 @@ source_modules =
     app.core
 forbidden_modules =
     app.adapters
+
+[importlinter:contract:2]
+name = Core must not depend on the composition root
+type = forbidden
+source_modules =
+    app.core
+forbidden_modules =
+    app.composition
+
+[importlinter:contract:3]
+name = Core must not depend on test fakes
+type = forbidden
+source_modules =
+    app.core
+forbidden_modules =
+    app.testing
