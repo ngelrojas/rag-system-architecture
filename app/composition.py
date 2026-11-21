@@ -5,6 +5,7 @@
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 
+from app.adapters.local_llm import LocalLLM
 from app.adapters.openai_embeddings import OpenAIEmbeddings
 from app.adapters.openai_llm import OpenAILLM
 from app.adapters.orchestration.answer_graph import build_answer_graph
@@ -91,9 +92,19 @@ def wire(
     )
 
 
+def build_llm(settings: Settings) -> LLMPort:
+    """6.4 — the entire swap lives here. Everything downstream receives an
+    LLMPort and never inspects what's behind it."""
+    if settings.inference_mode == "cloud":
+        return OpenAILLM(api_key=settings.openai_api_key, model=settings.llm_model, timeout_s=settings.llm_timeout_s)
+    if settings.inference_mode == "local":
+        return LocalLLM(base_url=settings.local_inference_url, model=settings.local_model_name)
+    raise ValueError(f"Unknown inference_mode: {settings.inference_mode}")
+
+
 def build_application(settings: Settings) -> Application:
+    raw_llm = build_llm(settings)
     embedder: EmbeddingPort = OpenAIEmbeddings(api_key=settings.openai_api_key, model=settings.embedding_model)
-    raw_llm = OpenAILLM(api_key=settings.openai_api_key, model=settings.llm_model, timeout_s=settings.llm_timeout_s)
     # Command side and query side resolved independently (4.3).
     vector_store: VectorStorePort = QdrantVectorStore(url=settings.qdrant_url, collection=settings.qdrant_collection)
     retriever: RetrievalPort = QdrantRetriever(url=settings.qdrant_url, collection=settings.qdrant_collection)

@@ -27,5 +27,10 @@ class Settings(BaseSettings):
     structured_database_url: str = "sqlite:///:memory:"
     nlq_schema: str = ""
 
+    # 6.4 — "cloud" (OpenAI) or "local" (any OpenAI-compatible server: Ollama, vLLM, llama.cpp)
+    inference_mode: str = "cloud"
+    local_inference_url: str = "http://localhost:11434"
+    local_model_name: str = "qwen2.5:7b"
+
     # 6.1 — share of answers sent to the LLM judge (0.0 to 1.0)
     judge_sample_rate: float = 0.05
