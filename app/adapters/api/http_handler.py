@@ -7,11 +7,13 @@ import logging
 import random
 import uuid
 
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.adapters.api.review_endpoints import build_review_router
 from app.application import Application
+from app.compliance.sql_guardrail import ComplianceError
 from app.core.commands import IngestDocumentCommand
 from app.core.queries import AnswerQuestionQuery
 from app.evaluation.deterministic_checks import run_deterministic_checks
@@ -31,6 +33,11 @@ class IngestRequest(BaseModel):
 
 def create_api(application: Application) -> FastAPI:
     api = FastAPI(title="Document intelligence service")
+
+    @api.exception_handler(ComplianceError)
+    def compliance_refused(request: Request, exc: ComplianceError) -> JSONResponse:
+        # 6.3 — a guardrail refusal is an answer, not a crash.
+        return JSONResponse(status_code=403, content={"error": "compliance_refused", "detail": str(exc)})
 
     @api.post("/query")
     def query_endpoint(request: QueryRequest, x_trace_id: str | None = Header(default=None)) -> dict:

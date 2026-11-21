@@ -14,6 +14,8 @@ from app.adapters.postgres_structured_query import PostgresStructuredQuery
 from app.adapters.qdrant_store import QdrantRetriever, QdrantVectorStore
 from app.adapters.sqlite_structured_query import SqliteStructuredQuery
 from app.application import Application
+from app.compliance.pii_guardrail import PiiGuardrailLLM
+from app.compliance.sql_guardrail import ReadOnlySqlGuardrail
 from app.config import Settings
 from app.core.ingest_handler import IngestDocumentHandler
 from app.core.query_handler import AnswerQuestionHandler
@@ -91,13 +93,17 @@ def wire(
 
 def build_application(settings: Settings) -> Application:
     embedder: EmbeddingPort = OpenAIEmbeddings(api_key=settings.openai_api_key, model=settings.embedding_model)
-    llm: LLMPort = OpenAILLM(
-        api_key=settings.openai_api_key, model=settings.llm_model, timeout_s=settings.llm_timeout_s
-    )
+    raw_llm = OpenAILLM(api_key=settings.openai_api_key, model=settings.llm_model, timeout_s=settings.llm_timeout_s)
     # Command side and query side resolved independently (4.3).
     vector_store: VectorStorePort = QdrantVectorStore(url=settings.qdrant_url, collection=settings.qdrant_collection)
     retriever: RetrievalPort = QdrantRetriever(url=settings.qdrant_url, collection=settings.qdrant_collection)
 
+    # 6.3 — guardrails wrap ports here, once. Everything downstream —
+    # handlers, orchestration graphs from Part V — receives the guarded
+    # ports and is unaware a guardrail exists.
+    guarded_llm: LLMPort = PiiGuardrailLLM(raw_llm)
+    guarded_structured_port: StructuredQueryPort = ReadOnlySqlGuardrail(build_structured_port(settings))
+
     return wire(
-        settings, llm, embedder, vector_store, retriever, build_structured_port(settings), build_checkpointer(settings)
+        settings, guarded_llm, embedder, vector_store, retriever, guarded_structured_port, build_checkpointer(settings)
     )

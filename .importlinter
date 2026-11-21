@@ -89,6 +89,7 @@ name = Wrappers wrap ports - never concrete adapters
 type = forbidden
 source_modules =
     app.observability
+    app.compliance
 forbidden_modules =
     app.adapters
     app.composition
