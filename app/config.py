@@ -18,3 +18,6 @@ class Settings(BaseSettings):
 
     min_relevance_threshold: float = 0.5
     chunk_size: int = 500
+
+    # 5.4 — durable human-in-the-loop pauses (empty = in-memory checkpointer)
+    checkpoint_database_url: str = ""

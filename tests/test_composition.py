@@ -8,3 +8,5 @@ def test_composition_root_builds_the_application() -> None:
     application = build_application(settings)
     assert application.query_handler is not None
     assert application.ingest_handler is not None
+    assert application.answer_graph is not None
+    assert application.review_graph is not None

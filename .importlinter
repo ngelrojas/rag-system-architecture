@@ -55,3 +55,17 @@ forbidden_modules =
     app.composition
     openai
     qdrant_client
+
+[importlinter:contract:6]
+name = The HTTP adapter drives the core - no concrete driven adapters
+type = forbidden
+source_modules =
+    app.adapters.api
+forbidden_modules =
+    app.adapters.openai_llm
+    app.adapters.openai_embeddings
+    app.adapters.qdrant_store
+    app.adapters.postgres_outbox_store
+    app.composition
+    openai
+    qdrant_client
