@@ -5,8 +5,9 @@
 # handlers and graphs, never a concrete driven adapter.
 import logging
 import random
+import uuid
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from pydantic import BaseModel
 
 from app.adapters.api.review_endpoints import build_review_router
@@ -32,15 +33,19 @@ def create_api(application: Application) -> FastAPI:
     api = FastAPI(title="Document intelligence service")
 
     @api.post("/query")
-    def query_endpoint(request: QueryRequest) -> dict:
+    def query_endpoint(request: QueryRequest, x_trace_id: str | None = Header(default=None)) -> dict:
+        # 6.2 — one trace_id per request; every port call below logs a span under it.
+        trace_id = x_trace_id or str(uuid.uuid4())
+        handler = application.make_query_handler(trace_id)
         query = AnswerQuestionQuery(question=request.text, min_relevance=application.min_relevance)
-        result = application.query_handler.handle(query)
+        result = handler.handle(query)
 
         # 6.1 — every answer gets the cheap checks; a sample gets the judge.
         checks = run_deterministic_checks(result)
         if random.random() < application.judge_sample_rate:
             log.info("judge_verdict %s", judge_answer_quality(query, result, application.judge_llm))
-        return {"answer": result.answer, "chunks_used": result.chunks_used, "checks": checks.failures}
+        return {"answer": result.answer, "chunks_used": result.chunks_used, "checks": checks.failures,
+                "trace_id": trace_id}
 
     @api.post("/ask")
     def ask_endpoint(request: QueryRequest) -> dict:

@@ -83,3 +83,14 @@ forbidden_modules =
     app.composition
     openai
     qdrant_client
+
+[importlinter:contract:8]
+name = Wrappers wrap ports - never concrete adapters
+type = forbidden
+source_modules =
+    app.observability
+forbidden_modules =
+    app.adapters
+    app.composition
+    openai
+    qdrant_client

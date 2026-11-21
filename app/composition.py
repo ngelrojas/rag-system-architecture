@@ -18,6 +18,7 @@ from app.config import Settings
 from app.core.ingest_handler import IngestDocumentHandler
 from app.core.query_handler import AnswerQuestionHandler
 from app.core.structured_query_handler import StructuredQueryHandler
+from app.observability.traced_port import TracedEmbeddingPort, TracedLLMPort, TracedRetrievalPort
 from app.ports import EmbeddingPort, LLMPort, RetrievalPort, StructuredQueryPort, VectorStorePort
 
 
@@ -43,6 +44,17 @@ def build_structured_port(settings: Settings) -> StructuredQueryPort:
     return PostgresStructuredQuery(connection_string=url)
 
 
+def build_request_scoped_ports(
+    base_llm: LLMPort, base_embedder: EmbeddingPort, base_retriever: RetrievalPort, trace_id: str
+) -> tuple[LLMPort, EmbeddingPort, RetrievalPort]:
+    """6.2 — one trace_id per request, threaded into every wrapped port."""
+    return (
+        TracedLLMPort(base_llm, trace_id),
+        TracedEmbeddingPort(base_embedder, trace_id),
+        TracedRetrievalPort(base_retriever, trace_id),
+    )
+
+
 def wire(
     settings: Settings,
     llm: LLMPort,
@@ -58,6 +70,11 @@ def wire(
     query_handler = AnswerQuestionHandler(llm=llm, embedder=embedder, retriever=retriever)
     structured_handler = StructuredQueryHandler(llm=llm, db=structured_db, schema=settings.nlq_schema)
     min_relevance = settings.min_relevance_threshold
+
+    def make_query_handler(trace_id: str) -> AnswerQuestionHandler:
+        traced_llm, traced_embedder, traced_retriever = build_request_scoped_ports(llm, embedder, retriever, trace_id)
+        return AnswerQuestionHandler(llm=traced_llm, embedder=traced_embedder, retriever=traced_retriever)
+
     return Application(
         query_handler=query_handler,
         ingest_handler=ingest_handler,
@@ -68,6 +85,7 @@ def wire(
         min_relevance=min_relevance,
         judge_llm=llm,
         judge_sample_rate=settings.judge_sample_rate,
+        make_query_handler=make_query_handler,
     )
 
 
