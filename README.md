@@ -25,6 +25,15 @@ git log --oneline feature/chapter-3..feature/chapter-4   # what Part IV changes,
 git diff feature/chapter-3 feature/chapter-4  # the whole Part IV refactor in one view
 ```
 
+## Try the complete system in one minute
+
+No API key and no Docker needed — `make demo` runs the whole reference system offline:
+
+```bash
+make install
+make demo
+```
+
 ## Setup
 
 Requirements: [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 for you), and Docker for the chapters that use Qdrant and Postgres.
@@ -37,7 +46,20 @@ cp .env.example .env   # only needed when you call real services
 
 `make check` runs the same four gates as CI (`.github/workflows/lint.yml`). Every branch passes them without API keys: the tests use the fakes the book builds.
 
-Each chapter's notes are in [`docs/chapters/`](docs/chapters/).
+Each chapter's notes are in [`docs/chapters/`](docs/chapters/); the architecture diagrams are in [`docs/diagrams/`](docs/diagrams/).
+
+## Configuration
+
+Everything is read from environment variables or `.env` (see `.env.example`). The composition root (`app/composition.py`) is the only place that turns them into adapters.
+
+| Setting | Values | Chapter |
+|---|---|---|
+| `DEPLOYMENT_MODE` | `cloud` · `sovereign` · `offline` | 6.6, 7.1 |
+| `INFERENCE_MODE` | `cloud` (OpenAI) · `local` (Ollama, vLLM, llama.cpp) | 6.4 |
+| `CHECKPOINT_DATABASE_URL` | Postgres URL for durable review pauses | 5.4 |
+| `STRUCTURED_DATABASE_URL` | `sqlite:///…` or a Postgres URL for natural-language queries | 5.5 |
+| `MAX_LLM_CALLS_PER_REQUEST` | cost ceiling per request | 6.5 |
+| `JUDGE_SAMPLE_RATE` | share of answers sent to the LLM judge | 6.1 |
 
 ## License
 
