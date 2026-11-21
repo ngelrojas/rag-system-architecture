@@ -1,8 +1,8 @@
 """Chapter 0 — the workbench works.
 
-These tests don't test the system (there is no system yet). They prove the
-three tools from 0.5 are wired: the test harness runs, the packages exist,
-and the interpreter is the version the book pins.
+These tests don't test the system. They prove the three tools from 0.5 are
+wired: the test harness runs, the packages exist, and the interpreter is
+the version the book pins. Since Part III the packages live under app/.
 """
 
 import importlib
@@ -14,5 +14,5 @@ def test_python_version_is_pinned() -> None:
 
 
 def test_packages_exist() -> None:
-    for name in ("domain", "adapters"):
+    for name in ("app", "app.core", "app.adapters"):
         assert importlib.import_module(name) is not None

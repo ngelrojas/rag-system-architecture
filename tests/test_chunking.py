@@ -1,7 +1,7 @@
 # tests/test_chunking.py — 2.2
 import pytest
 
-from domain.chunking import split_into_chunks
+from app.core.chunking import split_into_chunks
 
 
 def test_fixed_windows() -> None:

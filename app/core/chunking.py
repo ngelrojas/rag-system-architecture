@@ -1,4 +1,4 @@
-# domain/chunking.py — 2.2, the chunking decision gets an owner
+# app/core/chunking.py — 2.2, moved into the core in 3.3
 #
 # In the naive pipeline, chunk size was a literal 500 on line one of
 # ingest_document: a decision that changes what can ever be retrieved,

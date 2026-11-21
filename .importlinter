@@ -1,43 +1,11 @@
-# .importlinter — boundaries written as a contract (0.5)
-#
-# The book's first sketch of this file used a top-level package called
-# "docintel". The repository keeps "domain" and "adapters" as top-level
-# packages, which is exactly what Part I and Part II use.
+# .importlinter — the boundary from Part III (3.2-3.3); 3.6 completes it
 [importlinter]
-root_packages =
-    domain
-    adapters
-    services
-include_external_packages = True
+root_package = app
 
-[importlinter:contract:domain-is-pure]
-name = Domain must not depend on adapters or frameworks
+[importlinter:contract:1]
+name = Core must not depend on adapters
 type = forbidden
 source_modules =
-    domain
+    app.core
 forbidden_modules =
-    adapters
-    langchain
-
-# 1.4 — the rule that makes the port a fact rather than a wish
-[importlinter:contract:domain-independence]
-name = Domain must not import adapters or vendor SDKs
-type = forbidden
-source_modules =
-    domain
-forbidden_modules =
-    adapters
-    services
-    openai
-    qdrant_client
-
-# 2.4 — orchestrators coordinate ports; they never touch a vendor
-[importlinter:contract:services-use-ports]
-name = Services must not import adapters or vendor SDKs
-type = forbidden
-source_modules =
-    services
-forbidden_modules =
-    adapters
-    openai
-    qdrant_client
+    app.adapters

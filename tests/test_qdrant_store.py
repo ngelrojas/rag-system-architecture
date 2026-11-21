@@ -1,21 +1,29 @@
 # tests/test_qdrant_store.py — the real adapter, against in-process Qdrant
-from adapters.qdrant_store import QdrantVectorStore
-from domain.ports import VectorStorePort
+from app.adapters.qdrant_store import QdrantVectorStore
+from app.ports import VectorStorePort
 
 
-def test_upsert_then_query_round_trip() -> None:
-    store: VectorStorePort = QdrantVectorStore(url=":memory:", collection="chunks")
+def make_store() -> VectorStorePort:
+    return QdrantVectorStore(url=":memory:", collection="chunks")
+
+
+def test_upsert_then_search_round_trip() -> None:
+    store = make_store()
     store.upsert("doc-0", [1.0, 0.0], {"text": "about cats"})
     store.upsert("doc-1", [0.0, 1.0], {"text": "about dogs"})
 
-    matches = store.query([0.9, 0.1], top_k=1)
+    results = store.search([0.9, 0.1], top_k=1)
 
-    assert matches[0].id == "doc-0"
-    assert matches[0].metadata["text"] == "about cats"
+    assert results[0].text == "about cats"
+    assert results[0].score > 0.9
 
 
-def test_upsert_replaces_the_same_id() -> None:
-    store = QdrantVectorStore(url=":memory:", collection="chunks")
-    store.upsert("doc-0", [1.0, 0.0], {"text": "old"})
-    store.upsert("doc-0", [1.0, 0.0], {"text": "new"})
-    assert [m.metadata["text"] for m in store.query([1.0, 0.0], top_k=5)] == ["new"]
+def test_delete_prefix_removes_a_whole_document() -> None:
+    store = make_store()
+    for i in range(3):
+        store.upsert(f"policy-{i}", [1.0, float(i)], {"text": f"policy part {i}"})
+    store.upsert("other-0", [1.0, 0.0], {"text": "unrelated"})
+
+    store.delete_prefix("policy")
+
+    assert [r.text for r in store.search([1.0, 0.0], top_k=10)] == ["unrelated"]
