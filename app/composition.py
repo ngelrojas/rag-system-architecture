@@ -66,6 +66,8 @@ def wire(
         review_graph=build_ingest_review_graph(ingest_handler, checkpointer),
         multi_agent_graph=build_multi_agent_graph(query_handler, structured_handler, llm, min_relevance=min_relevance),
         min_relevance=min_relevance,
+        judge_llm=llm,
+        judge_sample_rate=settings.judge_sample_rate,
     )
 
 

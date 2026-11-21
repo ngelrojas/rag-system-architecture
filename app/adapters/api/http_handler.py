@@ -3,6 +3,9 @@
 # Receives an already-wired Application from the composition root and
 # exposes it over HTTP. Like every driving adapter, it calls the core's
 # handlers and graphs, never a concrete driven adapter.
+import logging
+import random
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -10,6 +13,10 @@ from app.adapters.api.review_endpoints import build_review_router
 from app.application import Application
 from app.core.commands import IngestDocumentCommand
 from app.core.queries import AnswerQuestionQuery
+from app.evaluation.deterministic_checks import run_deterministic_checks
+from app.evaluation.llm_judge import judge_answer_quality
+
+log = logging.getLogger(__name__)
 
 
 class QueryRequest(BaseModel):
@@ -28,7 +35,12 @@ def create_api(application: Application) -> FastAPI:
     def query_endpoint(request: QueryRequest) -> dict:
         query = AnswerQuestionQuery(question=request.text, min_relevance=application.min_relevance)
         result = application.query_handler.handle(query)
-        return {"answer": result.answer, "chunks_used": result.chunks_used}
+
+        # 6.1 — every answer gets the cheap checks; a sample gets the judge.
+        checks = run_deterministic_checks(result)
+        if random.random() < application.judge_sample_rate:
+            log.info("judge_verdict %s", judge_answer_quality(query, result, application.judge_llm))
+        return {"answer": result.answer, "chunks_used": result.chunks_used, "checks": checks.failures}
 
     @api.post("/ask")
     def ask_endpoint(request: QueryRequest) -> dict:

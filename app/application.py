@@ -9,6 +9,7 @@ from typing import Any
 from app.core.ingest_handler import IngestDocumentHandler
 from app.core.query_handler import AnswerQuestionHandler
 from app.core.structured_query_handler import StructuredQueryHandler
+from app.ports import LLMPort
 
 
 @dataclass
@@ -22,3 +23,5 @@ class Application:
     review_graph: Any
     multi_agent_graph: Any
     min_relevance: float
+    judge_llm: LLMPort
+    judge_sample_rate: float

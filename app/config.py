@@ -26,3 +26,6 @@ class Settings(BaseSettings):
     # "sqlite:///path.db" or "sqlite:///:memory:" for local runs, a postgresql:// URL in production.
     structured_database_url: str = "sqlite:///:memory:"
     nlq_schema: str = ""
+
+    # 6.1 — share of answers sent to the LLM judge (0.0 to 1.0)
+    judge_sample_rate: float = 0.05
